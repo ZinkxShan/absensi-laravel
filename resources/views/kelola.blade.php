@@ -73,6 +73,7 @@
     .btn-close { position:absolute; top:1rem; right:1rem; background:var(--card2); border:1px solid var(--border); color:var(--muted); padding:0.25rem 0.6rem; border-radius:6px; cursor:pointer; font-size:0.85rem; }
     .btn-print { margin-top:1rem; width:100%; padding:0.65rem; border-radius:10px; border:none; background:rgba(34,211,238,0.15); color:var(--accent); font-family:'Space Grotesk',sans-serif; font-weight:600; cursor:pointer; font-size:0.9rem; }
     .empty-state { color:var(--muted); font-size:0.9rem; text-align:center; padding:2rem; }
+    .info-box { background:rgba(34,211,238,0.05); border:1px solid rgba(34,211,238,0.1); border-radius:10px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.85rem; color:var(--muted); }
     @media print {
       body * { visibility:hidden; }
       .qr-wrap, .qr-wrap * { visibility:visible; }
@@ -181,6 +182,38 @@
         </div>
       </div>
     </div>
+
+    {{-- ── Panel Hari Libur ────────────────────────────────────── --}}
+    <div class="section-title">Pengaturan Hari Libur</div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">Tambah Hari Libur</div>
+        <div class="notif" id="notif-libur"></div>
+        <div class="info-box">
+        Sabtu & Minggu otomatis libur. Tambahkan hari libur khusus di sini.
+        </div>
+        <div class="form-group">
+          <label>Tanggal</label>
+          <input type="date" id="hl-tanggal">
+        </div>
+        <div class="form-group">
+          <label>Keterangan</label>
+          <input type="text" id="hl-keterangan" placeholder="contoh: Idul Fitri, HUT RI, Libur Semester">
+        </div>
+        <button class="btn btn-primary" onclick="tambahHariLibur()">+ Tambah Hari Libur</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Daftar Hari Libur Khusus</div>
+        <div class="tabel-wrap">
+          <table>
+            <thead><tr><th>Tanggal</th><th>Keterangan</th><th></th></tr></thead>
+            <tbody id="tbody-libur"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   {{-- Modal QR --}}
@@ -192,7 +225,7 @@
       <div class="qr-wrap">
         <img id="modal-img" src="" alt="QR Code">
       </div>
-      <button class="btn-print" onclick="window.print()">🖨️ Cetak QR Code</button>
+      <button class="btn-print" onclick="window.print()">Cetak QR Code</button>
     </div>
   </div>
 
@@ -350,8 +383,61 @@
         else alert(d.pesan);
     }
 
+    // ── Hari Libur ───────────────────────────────────────────────────────────
+    async function loadHariLibur() {
+        const res = await fetch('/api/hari-libur');
+        const list = await res.json();
+        renderHariLibur(list);
+    }
+
+    function renderHariLibur(list) {
+        const tbody = document.getElementById('tbody-libur');
+        if (!list.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="empty-state">Belum ada hari libur khusus</td></tr>';
+            return;
+        }
+        tbody.innerHTML = list.map(h => `
+        <tr>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent)">${h.tanggal}</td>
+            <td>${h.keterangan}</td>
+            <td><button class="btn-small btn-hapus" onclick="hapusHariLibur(${h.id},'${h.keterangan}')">Hapus</button></td>
+        </tr>`).join('');
+    }
+
+    async function tambahHariLibur() {
+        const tanggal    = document.getElementById('hl-tanggal').value;
+        const keterangan = document.getElementById('hl-keterangan').value.trim();
+        const notif      = document.getElementById('notif-libur');
+
+        const res = await fetch('/api/hari-libur', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ tanggal, keterangan })
+        });
+        const d = await res.json();
+        notif.className = 'notif ' + (d.status === 'berhasil' ? 'ok' : 'err');
+        notif.textContent = d.pesan;
+        notif.style.display = 'block';
+        setTimeout(() => notif.style.display = 'none', 3000);
+        if (d.status === 'berhasil') {
+            document.getElementById('hl-tanggal').value = '';
+            document.getElementById('hl-keterangan').value = '';
+            loadHariLibur();
+        }
+    }
+
+    async function hapusHariLibur(id, keterangan) {
+        if (!confirm(`Hapus hari libur "${keterangan}"?`)) return;
+        await fetch(`/api/hari-libur/${id}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF },
+        });
+        loadHariLibur();
+    }
+
     loadSiswa();
     loadUser();
+    loadHariLibur();
   </script>
 </body>
 </html>

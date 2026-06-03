@@ -113,6 +113,7 @@
     <div class="stat-card sakit"><div class="stat-label">Sakit</div><div class="stat-value" id="s-sakit">—</div></div>
     <div class="stat-card alpha"><div class="stat-label">Alpha</div><div class="stat-value" id="s-alpha">—</div></div>
     <div class="stat-card absen"><div class="stat-label">Tidak Hadir</div><div class="stat-value" id="s-absen">—</div></div>
+    
   </div>
   <div class="grid-2">
     <div class="panel">

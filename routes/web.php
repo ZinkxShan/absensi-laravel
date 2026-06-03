@@ -37,4 +37,7 @@ Route::middleware(['auth', 'auth.admin'])->group(function () {
     Route::get('/api/users',               [AbsensiController::class, 'getUsers']);
     Route::post('/api/users',              [AbsensiController::class, 'tambahUser']);
     Route::delete('/api/users/{id}',       [AbsensiController::class, 'hapusUser']);
+    Route::get('/api/hari-libur',          [AbsensiController::class, 'getHariLibur']);
+    Route::post('/api/hari-libur',         [AbsensiController::class, 'tambahHariLibur']);
+    Route::delete('/api/hari-libur/{id}',  [AbsensiController::class, 'hapusHariLibur']);
 });

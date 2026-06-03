@@ -35,6 +35,14 @@ class AbsensiController extends Controller
         $siswa = Siswa::where('nama_panggilan', $kode)->first();
         if (!$siswa) return response()->json(['status' => 'error', 'pesan' => "Siswa \"{$kode}\" tidak ditemukan"]);
 
+        $cekLibur = $this->isHariLibur(today()->toDateString());
+        if ($cekLibur['libur']) {
+            return response()->json([
+                'status' => 'error',
+                'pesan'  => "Hari ini libur: {$cekLibur['keterangan']}",
+            ]);
+        }
+
         $hariIni  = today()->toDateString();
         $existing = Absensi::where('siswa_id', $siswa->id)->where('tanggal', $hariIni)->first();
 
@@ -82,6 +90,14 @@ class AbsensiController extends Controller
         $siswa = Siswa::where('nama_panggilan', $kode)->first();
         if (!$siswa) return response()->json(['status' => 'error', 'pesan' => "Siswa \"{$kode}\" tidak ditemukan"]);
 
+        $cekLibur = $this->isHariLibur(today()->toDateString());
+        if ($cekLibur['libur']) {
+            return response()->json([
+                'status' => 'error',
+                'pesan'  => "Hari ini libur: {$cekLibur['keterangan']}",
+            ]);
+        }
+
         $hariIni  = today()->toDateString();
         $existing = Absensi::where('siswa_id', $siswa->id)->where('tanggal', $hariIni)->first();
 
@@ -124,6 +140,7 @@ class AbsensiController extends Controller
     public function apiDashboard(Request $request): JsonResponse
 {
     $tanggal  = $request->query('tanggal', today()->toDateString());
+    $infoLibur = $this->isHariLibur($tanggal);
     $user     = auth()->user();
     $isAdmin  = $user->role === 'admin';
 
@@ -207,6 +224,8 @@ class AbsensiController extends Controller
         'tren'             => $tren,
         'is_admin'         => $isAdmin,
         'user_kelas'       => $user->kelas,
+        'is_hari_libur'    => $infoLibur['libur'],
+        'ket_libur'        => $infoLibur['keterangan'],
     ]);
 }
 
@@ -363,8 +382,8 @@ public function hapusUser(int $id): JsonResponse
 
     // ── Hari Libur ───────────────────────────────────────────────────────────────
 
-private function isHariLibur(string $tanggal): array
-{
+    private function isHariLibur(string $tanggal): array
+    {
     // Cek Sabtu (6) dan Minggu (0)
     $dayOfWeek = date('w', strtotime($tanggal));
     if ($dayOfWeek == 0) return ['libur' => true, 'keterangan' => 'Hari Minggu'];
@@ -377,8 +396,8 @@ private function isHariLibur(string $tanggal): array
     return ['libur' => false, 'keterangan' => ''];
 }
 
-public function getHariLibur(): JsonResponse
-{
+    public function getHariLibur(): JsonResponse
+    {
     $list = \App\Models\HariLibur::orderBy('tanggal')->get()
         ->map(fn($h) => [
             'id'          => $h->id,
@@ -387,26 +406,26 @@ public function getHariLibur(): JsonResponse
             'keterangan'  => $h->keterangan,
         ]);
     return response()->json($list);
-}
+    }
 
-public function tambahHariLibur(Request $request): JsonResponse
-{
-    $tanggal    = trim($request->input('tanggal', ''));
-    $keterangan = trim($request->input('keterangan', ''));
+    public function tambahHariLibur(Request $request): JsonResponse
+    {
+        $tanggal    = trim($request->input('tanggal', ''));
+        $keterangan = trim($request->input('keterangan', ''));
 
-    if (!$tanggal || !$keterangan)
-        return response()->json(['status' => 'error', 'pesan' => 'Tanggal dan keterangan wajib diisi']);
+        if (!$tanggal || !$keterangan)
+            return response()->json(['status' => 'error', 'pesan' => 'Tanggal dan keterangan wajib diisi']);
 
-    if (\App\Models\HariLibur::where('tanggal', $tanggal)->exists())
-        return response()->json(['status' => 'error', 'pesan' => 'Tanggal ini sudah ada di daftar hari libur']);
+        if (\App\Models\HariLibur::where('tanggal', $tanggal)->exists())
+            return response()->json(['status' => 'error', 'pesan' => 'Tanggal ini sudah ada di daftar hari libur']);
 
-    \App\Models\HariLibur::create(['tanggal' => $tanggal, 'keterangan' => $keterangan]);
-    return response()->json(['status' => 'berhasil', 'pesan' => 'Hari libur berhasil ditambahkan']);
-}
+        \App\Models\HariLibur::create(['tanggal' => $tanggal, 'keterangan' => $keterangan]);
+        return response()->json(['status' => 'berhasil', 'pesan' => 'Hari libur berhasil ditambahkan']);
+    }
 
     public function hapusHariLibur(int $id): JsonResponse
     {
-    \App\Models\HariLibur::findOrFail($id)->delete();
-    return response()->json(['status' => 'berhasil']);
+        \App\Models\HariLibur::findOrFail($id)->delete();
+        return response()->json(['status' => 'berhasil']);
     }
 }
