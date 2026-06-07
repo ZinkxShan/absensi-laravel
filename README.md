@@ -56,3 +56,80 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Setup
+
+## Install Dependencies via Composer
+
+Masuk ke folder project
+cd C:\Users\nama_user_laptop\Herd\absensi
+
+1. Install semua dependency Laravel (wajib pertama kali)
+composer install
+
+2. QR Code generator
+composer require simplesoftwareio/simple-qrcode
+
+3. Image processing (untuk download kartu)
+composer require intervention/image:^3.0 -W
+
+4. Import/Export Excel
+composer require maatwebsite/excel
+
+
+## setup awal project
+
+1. Generate APP_KEY
+php artisan key:generate
+
+2. Jalankan semua migration
+php artisan migrate
+
+3. Clear semua cache
+php artisan optimize:clear
+
+
+## Konfigurasi .env yang wajib diubah
+
+1. APP_NAME=Absensi
+2. APP_URL=http://absensi.test
+
+3. DB_CONNECTION=mysql
+4. DB_HOST=127.0.0.1
+5. DB_PORT=3306
+6. DB_DATABASE=absensi_sekolah
+7. DB_USERNAME=root
+8. DB_PASSWORD=
+
+9. TIMEZONE=Asia/Makassar
+10. SESSION_DRIVER=file
+11. SESSION_DOMAIN=null
+
+
+## Buat Akun Admin Pertama
+
+1. php artisan tinker 
+
+2. lalu jalankan:
+\App\Models\User::create([
+    'username' => 'admin',
+    'password' => \Illuminate\Support\Facades\Hash::make('admin123'),
+    'role'     => 'admin',
+    'kelas'    => null,
+]);
+
+
+## Untuk Deploy via ngrok
+
+1. Download ngrok dari https://ngrok.com/download
+2. Lalu jalankan:
+ngrok config add-authtoken YOUR_TOKEN
+ngrok http 80 --host-header=absensi.test
+
+
+## Update .env saat menggunakan ngrok
+
+1. APP_URL=https://your-domain.ngrok-free.app
+2. SESSION_DOMAIN=your-domain.ngrok-free.app
+3. SANCTUM_STATEFUL_DOMAINS=your-domain.ngrok-free.app
+4. SESSION_SECURE_COOKIE=false
