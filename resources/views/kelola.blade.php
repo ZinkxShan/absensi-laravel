@@ -142,6 +142,49 @@
         </div>
       </div>
     </div>
+    
+    <div class="section-title">Import Siswa dari File</div>
+<div class="grid-2">
+    <div class="panel">
+        <div class="panel-title">Upload File</div>
+        <div class="notif" id="notif-import"></div>
+
+        <div class="info-box">
+            📋 Upload file Excel (.xlsx) atau CSV berisi data siswa.<br>
+            Kolom yang dibutuhkan: <strong style="color:var(--accent)">nama_panggilan, nama_lengkap, kelas, jurusan</strong>
+        </div>
+
+        <div class="form-group" style="margin-top:1rem;">
+            <label>Pilih File</label>
+            <input type="file" id="import-file" accept=".csv,.xlsx"
+                style="padding:0.5rem;cursor:pointer;"
+                onchange="previewFile(this)">
+        </div>
+
+        <div id="preview-file" style="display:none;padding:0.5rem 0.9rem;background:var(--card2);border-radius:8px;font-size:0.85rem;color:var(--accent);margin-bottom:1rem;">
+            📄 <span id="preview-nama"></span>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;">
+            <button class="btn btn-primary" onclick="importSiswa()" style="flex:1">
+                ⬆ Import Siswa
+            </button>
+            <a href="/api/siswa/template"
+               style="flex:1;display:block;padding:0.75rem;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:0.9rem;font-weight:600;text-align:center;text-decoration:none;transition:all 0.2s;"
+               onmouseover="this.style.color='var(--text)'"
+               onmouseout="this.style.color='var(--muted)'">
+                ⬇ Download Template
+            </a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">Hasil Import Terakhir</div>
+        <div id="hasil-import" style="color:var(--muted);font-size:0.9rem;text-align:center;padding:2rem;">
+            Belum ada import
+        </div>
+    </div>
+</div>
 
     {{-- ── Panel User ──────────────────────────────────────────── --}}
     <div class="section-title">Kelola User</div>
@@ -190,7 +233,7 @@
         <div class="panel-title">Tambah Hari Libur</div>
         <div class="notif" id="notif-libur"></div>
         <div class="info-box">
-        Sabtu & Minggu otomatis libur. Tambahkan hari libur khusus di sini.
+          📅 Sabtu & Minggu otomatis libur. Tambahkan hari libur khusus di sini.
         </div>
         <div class="form-group">
           <label>Tanggal</label>
@@ -225,7 +268,7 @@
       <div class="qr-wrap">
         <img id="modal-img" src="" alt="QR Code">
       </div>
-      <button class="btn-print" onclick="window.print()">Cetak QR Code</button>
+      <button class="btn-print" onclick="window.print()">🖨️ Cetak QR Code</button>
     </div>
   </div>
 
@@ -317,6 +360,77 @@
     function closeModal() {
         document.getElementById('modal-qr').classList.remove('show');
     }
+
+    // ── Import Siswa ─────────────────────────────────────────────────────────────
+
+function previewFile(input) {
+    const preview = document.getElementById('preview-file');
+    const namaEl  = document.getElementById('preview-nama');
+    if (input.files && input.files[0]) {
+        namaEl.textContent = input.files[0].name;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+async function importSiswa() {
+    const fileInput = document.getElementById('import-file');
+    const notif     = document.getElementById('notif-import');
+    const hasil     = document.getElementById('hasil-import');
+
+    if (!fileInput.files || !fileInput.files[0]) {
+        notif.className = 'notif err';
+        notif.textContent = 'Pilih file terlebih dahulu!';
+        notif.style.display = 'block';
+        setTimeout(() => notif.style.display = 'none', 3000);
+        return;
+    }
+
+    // Loading state
+    hasil.innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem;">⏳ Sedang mengimport...</div>';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('_token', CSRF);
+
+    const res = await fetch('/api/siswa/import', {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': CSRF },
+        body: formData
+    });
+    const d = await res.json();
+
+    notif.className = 'notif ' + (d.status === 'berhasil' ? 'ok' : 'err');
+    notif.textContent = d.pesan;
+    notif.style.display = 'block';
+    setTimeout(() => notif.style.display = 'none', 5000);
+
+    if (d.status === 'berhasil') {
+        hasil.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(74,222,128,0.1);border-radius:10px;">
+                <span style="color:var(--muted)">✅ Berhasil ditambahkan</span>
+                <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.berhasil} siswa</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(251,191,36,0.1);border-radius:10px;">
+                <span style="color:var(--muted)">⏭ Diskip (sudah ada)</span>
+                <span style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.diskip} siswa</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(248,113,113,0.1);border-radius:10px;">
+                <span style="color:var(--muted)">❌ Error (data tidak lengkap)</span>
+                <span style="color:var(--red);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.error} baris</span>
+            </div>
+        </div>`;
+
+        // Reset file input
+        fileInput.value = '';
+        document.getElementById('preview-file').style.display = 'none';
+
+        // Refresh tabel siswa
+        loadSiswa();
+    }
+} 
 
     // ── User ─────────────────────────────────────────────────────────────────
     function toggleKelasInput() {

@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AbsensiController extends Controller
 {
@@ -267,8 +268,133 @@ class AbsensiController extends Controller
         Siswa::findOrFail($id)->delete();
         return response()->json(['status' => 'berhasil']);
     }
-    
 
+    // ── Import Siswa (CSV/Excel) ─────────────────────────────────────────────
+    public function importSiswa(Request $request): JsonResponse
+{
+    if (!$request->hasFile('file')) {
+        return response()->json(['status' => 'error', 'pesan' => 'File tidak ditemukan']);
+    }
+
+    $file = $request->file('file');
+    $ext  = strtolower($file->getClientOriginalExtension());
+
+    if (!in_array($ext, ['csv', 'xlsx'])) {
+        return response()->json(['status' => 'error', 'pesan' => 'Format file harus CSV atau Excel (.xlsx)']);
+    }
+
+    $rows = [];
+
+    if ($ext === 'csv') {
+        // Baca CSV
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = null;
+        while (($row = fgetcsv($handle)) !== false) {
+            if (!$header) {
+                $header = $row;
+                continue;
+            }
+            if (count($row) >= 4) {
+                $rows[] = array_combine($header, $row);
+            }
+        }
+        fclose($handle);
+    } else {
+        // Baca Excel menggunakan maatwebsite/excel
+        $data = \Maatwebsite\Excel\Facades\Excel::toArray([], $file);
+        $sheet = $data[0] ?? [];
+        $header = null;
+        foreach ($sheet as $row) {
+            if (!$header) {
+                $header = array_map('strtolower', array_map('trim', $row));
+                continue;
+            }
+            if (count($row) >= 4) {
+                $rows[] = array_combine($header, $row);
+            }
+        }
+    }
+
+    if (empty($rows)) {
+        return response()->json(['status' => 'error', 'pesan' => 'File kosong atau format tidak sesuai']);
+    }
+
+    $berhasil = 0;
+    $diskip   = 0;
+    $error    = 0;
+
+    foreach ($rows as $row) {
+        $panggilan = strtolower(trim($row['nama_panggilan'] ?? ''));
+        $lengkap   = trim($row['nama_lengkap'] ?? '');
+        $kelas     = trim($row['kelas'] ?? '');
+        $jurusan   = trim($row['jurusan'] ?? '');
+
+        // Skip baris kosong
+        if (!$panggilan || !$lengkap || !$kelas) {
+            $error++;
+            continue;
+        }
+
+        // Skip kalau nama panggilan sudah ada
+        if (Siswa::where('nama_panggilan', $panggilan)->exists()) {
+            $diskip++;
+            continue;
+        }
+
+        Siswa::create([
+            'nama_panggilan' => $panggilan,
+            'nama_lengkap'   => $lengkap,
+            'kelas'          => $kelas,
+            'jurusan'        => $jurusan ?: null,
+        ]);
+        $berhasil++;
+    }
+
+    return response()->json([
+        'status'   => 'berhasil',
+        'pesan'    => "Import selesai: {$berhasil} ditambahkan, {$diskip} diskip (sudah ada), {$error} error",
+        'berhasil' => $berhasil,
+        'diskip'   => $diskip,
+        'error'    => $error,
+    ]);
+}
+
+public function downloadTemplate()
+{
+    // Buat file xlsx menggunakan maatwebsite/excel
+    return \Maatwebsite\Excel\Facades\Excel::download(
+        new class implements \Maatwebsite\Excel\Concerns\FromArray,
+                              \Maatwebsite\Excel\Concerns\WithHeadings,
+                              \Maatwebsite\Excel\Concerns\WithStyles
+        {
+            public function array(): array
+            {
+                return [
+                    ['budi',  'Budi Santoso',  'XI-RPL',  'Rekayasa Perangkat Lunak'],
+                    ['ani',   'Ani Rahayu',    'XI-RPL',  'Rekayasa Perangkat Lunak'],
+                    ['doni',  'Doni Prasetyo', 'XI-TJKT', 'Teknik Jaringan Komputer dan Telekomunikasi'],
+                ];
+            }
+
+            public function headings(): array
+            {
+                return ['nama_panggilan', 'nama_lengkap', 'kelas', 'jurusan'];
+            }
+
+            public function styles(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet)
+            {
+                // Bold header
+                return [
+                    1 => ['font' => ['bold' => true]],
+                ];
+            }
+        },
+        'template_import_siswa.xlsx',
+        \Maatwebsite\Excel\Excel::XLSX
+    );
+}
+    
+    // ── Tambah User  ─────────────────────────────────────────
     public function tambahUser(Request $request): JsonResponse
 {
     $username = trim($request->input('username', ''));
@@ -428,4 +554,5 @@ public function hapusUser(int $id): JsonResponse
         \App\Models\HariLibur::findOrFail($id)->delete();
         return response()->json(['status' => 'berhasil']);
     }
+
 }
