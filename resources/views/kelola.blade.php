@@ -60,9 +60,6 @@
     .btn-hapus:hover { background:rgba(248,113,113,0.22); }
     .actions { display:flex; gap:0.4rem; }
     .section-title { font-size:1rem; font-weight:600; margin:2rem 0 1rem; color:var(--muted); border-top:1px solid var(--border); padding-top:1.5rem; }
-    .badge-role-admin      { display:inline-block; padding:0.2rem 0.5rem; border-radius:6px; background:rgba(34,211,238,0.15); color:var(--accent); font-size:0.8rem; font-weight:500; }
-    .badge-role-sekretaris { display:inline-block; padding:0.2rem 0.5rem; border-radius:6px; background:rgba(129,140,248,0.15); color:var(--accent2); font-size:0.8rem; font-weight:500; }
-    .badge-role-user       { display:inline-block; padding:0.2rem 0.5rem; border-radius:6px; background:rgba(100,116,139,0.15); color:var(--muted); font-size:0.8rem; font-weight:500; }
     .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:100; }
     .modal-overlay.show { display:flex; }
     .modal { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:2rem; width:300px; text-align:center; position:relative; }
@@ -90,6 +87,8 @@
       <a href="/keluar" class="keluar">Scan Keluar</a>
       <a href="/dashboard">Dashboard</a>
       <a href="/kelola" class="active">Kelola Siswa</a>
+      <a href="/kelola-user">Kelola User</a>
+      <a href="/hari-libur">Hari Libur</a>
     </div>
   </nav>
 
@@ -142,117 +141,39 @@
         </div>
       </div>
     </div>
-    
+
+    {{-- ── Panel Import Siswa ───────────────────────────────────── --}}
     <div class="section-title">Import Siswa dari File</div>
-<div class="grid-2">
-    <div class="panel">
+    <div class="grid-2">
+      <div class="panel">
         <div class="panel-title">Upload File</div>
         <div class="notif" id="notif-import"></div>
-
         <div class="info-box">
-            📋 Upload file Excel (.xlsx) atau CSV berisi data siswa.<br>
-            Kolom yang dibutuhkan: <strong style="color:var(--accent)">nama_panggilan, nama_lengkap, kelas, jurusan</strong>
+          Upload file Excel (.xlsx) berisi data siswa.<br>
+          Kolom yang dibutuhkan: <strong style="color:var(--accent)">nama_panggilan, nama_lengkap, kelas, jurusan</strong>
         </div>
-
         <div class="form-group" style="margin-top:1rem;">
-            <label>Pilih File</label>
-            <input type="file" id="import-file" accept=".csv,.xlsx"
-                style="padding:0.5rem;cursor:pointer;"
-                onchange="previewFile(this)">
+          <label>Pilih File</label>
+          <input type="file" id="import-file" accept=".xlsx" style="padding:0.5rem;cursor:pointer;" onchange="previewFile(this)">
         </div>
-
         <div id="preview-file" style="display:none;padding:0.5rem 0.9rem;background:var(--card2);border-radius:8px;font-size:0.85rem;color:var(--accent);margin-bottom:1rem;">
-            📄 <span id="preview-nama"></span>
+          <span id="preview-nama"></span>
         </div>
-
         <div style="display:flex;gap:0.75rem;">
-            <button class="btn btn-primary" onclick="importSiswa()" style="flex:1">
-                ⬆ Import Siswa
-            </button>
-            <a href="/api/siswa/template"
-               style="flex:1;display:block;padding:0.75rem;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:0.9rem;font-weight:600;text-align:center;text-decoration:none;transition:all 0.2s;"
-               onmouseover="this.style.color='var(--text)'"
-               onmouseout="this.style.color='var(--muted)'">
-                ⬇ Download Template
-            </a>
+          <button class="btn btn-primary" onclick="importSiswa()" style="flex:1">⬆ Import Siswa</button>
+          <a href="/api/siswa/template"
+             style="flex:1;display:block;padding:0.75rem;border-radius:10px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:0.9rem;font-weight:600;text-align:center;text-decoration:none;transition:all 0.2s;"
+             onmouseover="this.style.color='var(--text)'"
+             onmouseout="this.style.color='var(--muted)'">
+            Download Template
+          </a>
         </div>
-    </div>
+      </div>
 
-    <div class="panel">
+      <div class="panel">
         <div class="panel-title">Hasil Import Terakhir</div>
         <div id="hasil-import" style="color:var(--muted);font-size:0.9rem;text-align:center;padding:2rem;">
-            Belum ada import
-        </div>
-    </div>
-</div>
-
-    {{-- ── Panel User ──────────────────────────────────────────── --}}
-    <div class="section-title">Kelola User</div>
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">Tambah User Baru</div>
-        <div class="notif" id="notif-user"></div>
-        <div class="form-group">
-          <label>Username</label>
-          <input type="text" id="u-username" placeholder="contoh: guru1, sekretaris_xirpl" autocomplete="off">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="u-password" placeholder="Minimal 6 karakter">
-        </div>
-        <div class="form-group">
-          <label>Role</label>
-          <select id="u-role" onchange="toggleKelasInput()">
-            <option value="user">User (Scan saja)</option>
-            <option value="sekretaris">Sekretaris (Dashboard)</option>
-            <option value="admin">Admin (Semua akses)</option>
-          </select>
-        </div>
-        <div class="form-group" id="kelas-input" style="display:none;">
-          <label>Kelas Sekretaris</label>
-          <input type="text" id="u-kelas" placeholder="contoh: XI-RPL, X-A" autocomplete="off">
-        </div>
-        <button class="btn btn-primary" onclick="tambahUser()">+ Tambah User</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-title">Daftar User</div>
-        <div class="tabel-wrap">
-          <table>
-            <thead><tr><th>Username</th><th>Role</th><th>Kelas</th><th></th></tr></thead>
-            <tbody id="tbody-user"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    {{-- ── Panel Hari Libur ────────────────────────────────────── --}}
-    <div class="section-title">Pengaturan Hari Libur</div>
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">Tambah Hari Libur</div>
-        <div class="notif" id="notif-libur"></div>
-        <div class="info-box">
-          📅 Sabtu & Minggu otomatis libur. Tambahkan hari libur khusus di sini.
-        </div>
-        <div class="form-group">
-          <label>Tanggal</label>
-          <input type="date" id="hl-tanggal">
-        </div>
-        <div class="form-group">
-          <label>Keterangan</label>
-          <input type="text" id="hl-keterangan" placeholder="contoh: Idul Fitri, HUT RI, Libur Semester">
-        </div>
-        <button class="btn btn-primary" onclick="tambahHariLibur()">+ Tambah Hari Libur</button>
-      </div>
-
-      <div class="panel">
-        <div class="panel-title">Daftar Hari Libur Khusus</div>
-        <div class="tabel-wrap">
-          <table>
-            <thead><tr><th>Tanggal</th><th>Keterangan</th><th></th></tr></thead>
-            <tbody id="tbody-libur"></tbody>
-          </table>
+          Belum ada import
         </div>
       </div>
     </div>
@@ -268,7 +189,7 @@
       <div class="qr-wrap">
         <img id="modal-img" src="" alt="QR Code">
       </div>
-      <button class="btn-print" onclick="window.print()">🖨️ Cetak QR Code</button>
+      <button class="btn-print" onclick="window.print()">Cetak QR Code</button>
     </div>
   </div>
 
@@ -361,197 +282,72 @@
         document.getElementById('modal-qr').classList.remove('show');
     }
 
-    // ── Import Siswa ─────────────────────────────────────────────────────────────
-
-function previewFile(input) {
-    const preview = document.getElementById('preview-file');
-    const namaEl  = document.getElementById('preview-nama');
-    if (input.files && input.files[0]) {
-        namaEl.textContent = input.files[0].name;
-        preview.style.display = 'block';
-    } else {
-        preview.style.display = 'none';
-    }
-}
-
-async function importSiswa() {
-    const fileInput = document.getElementById('import-file');
-    const notif     = document.getElementById('notif-import');
-    const hasil     = document.getElementById('hasil-import');
-
-    if (!fileInput.files || !fileInput.files[0]) {
-        notif.className = 'notif err';
-        notif.textContent = 'Pilih file terlebih dahulu!';
-        notif.style.display = 'block';
-        setTimeout(() => notif.style.display = 'none', 3000);
-        return;
+    // ── Import Siswa ─────────────────────────────────────────────────────────
+    function previewFile(input) {
+        const preview = document.getElementById('preview-file');
+        const namaEl  = document.getElementById('preview-nama');
+        if (input.files && input.files[0]) {
+            namaEl.textContent = input.files[0].name;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
     }
 
-    // Loading state
-    hasil.innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem;">⏳ Sedang mengimport...</div>';
+    async function importSiswa() {
+        const fileInput = document.getElementById('import-file');
+        const notif     = document.getElementById('notif-import');
+        const hasil     = document.getElementById('hasil-import');
 
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    formData.append('_token', CSRF);
-
-    const res = await fetch('/api/siswa/import', {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': CSRF },
-        body: formData
-    });
-    const d = await res.json();
-
-    notif.className = 'notif ' + (d.status === 'berhasil' ? 'ok' : 'err');
-    notif.textContent = d.pesan;
-    notif.style.display = 'block';
-    setTimeout(() => notif.style.display = 'none', 5000);
-
-    if (d.status === 'berhasil') {
-        hasil.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:0.75rem;">
-            <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(74,222,128,0.1);border-radius:10px;">
-                <span style="color:var(--muted)">✅ Berhasil ditambahkan</span>
-                <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.berhasil} siswa</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(251,191,36,0.1);border-radius:10px;">
-                <span style="color:var(--muted)">⏭ Diskip (sudah ada)</span>
-                <span style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.diskip} siswa</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(248,113,113,0.1);border-radius:10px;">
-                <span style="color:var(--muted)">❌ Error (data tidak lengkap)</span>
-                <span style="color:var(--red);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.error} baris</span>
-            </div>
-        </div>`;
-
-        // Reset file input
-        fileInput.value = '';
-        document.getElementById('preview-file').style.display = 'none';
-
-        // Refresh tabel siswa
-        loadSiswa();
-    }
-} 
-
-    // ── User ─────────────────────────────────────────────────────────────────
-    function toggleKelasInput() {
-        const role = document.getElementById('u-role').value;
-        document.getElementById('kelas-input').style.display = role === 'sekretaris' ? 'block' : 'none';
-    }
-
-    async function loadUser() {
-        const res = await fetch('/api/users');
-        const users = await res.json();
-        renderUser(users);
-    }
-
-    function renderUser(list) {
-        const tbody = document.getElementById('tbody-user');
-        if (!list.length) {
-            tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Belum ada user</td></tr>';
+        if (!fileInput.files || !fileInput.files[0]) {
+            notif.className = 'notif err';
+            notif.textContent = 'Pilih file terlebih dahulu!';
+            notif.style.display = 'block';
+            setTimeout(() => notif.style.display = 'none', 3000);
             return;
         }
-        tbody.innerHTML = list.map(u => `
-        <tr>
-            <td>${u.username}</td>
-            <td><span class="badge-role-${u.role}">${u.role}</span></td>
-            <td>${u.kelas ?? '—'}</td>
-            <td><button class="btn-small btn-hapus" onclick="hapusUser(${u.id},'${u.username}')">Hapus</button></td>
-        </tr>`).join('');
-    }
 
-    async function tambahUser() {
-        const username = document.getElementById('u-username').value.trim();
-        const password = document.getElementById('u-password').value.trim();
-        const role     = document.getElementById('u-role').value;
-        const kelas    = document.getElementById('u-kelas').value.trim();
-        const notif    = document.getElementById('notif-user');
+        hasil.innerHTML = '<div style="color:var(--muted);text-align:center;padding:2rem;">⏳ Sedang mengimport...</div>';
 
-        const res = await fetch('/api/users', {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('_token', CSRF);
+
+        const res = await fetch('/api/siswa/import', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify({ username, password, role, kelas })
+            headers: { 'X-CSRF-TOKEN': CSRF },
+            body: formData
         });
         const d = await res.json();
+
         notif.className = 'notif ' + (d.status === 'berhasil' ? 'ok' : 'err');
         notif.textContent = d.pesan;
         notif.style.display = 'block';
-        setTimeout(() => notif.style.display = 'none', 3000);
+        setTimeout(() => notif.style.display = 'none', 5000);
+
         if (d.status === 'berhasil') {
-            document.getElementById('u-username').value = '';
-            document.getElementById('u-password').value = '';
-            document.getElementById('u-kelas').value = '';
-            document.getElementById('u-role').value = 'user';
-            document.getElementById('kelas-input').style.display = 'none';
-            loadUser();
+            hasil.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(74,222,128,0.1);border-radius:10px;">
+                    <span style="color:var(--muted)">Berhasil ditambahkan</span>
+                    <span style="color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.berhasil} siswa</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(251,191,36,0.1);border-radius:10px;">
+                    <span style="color:var(--muted)">Diskip (sudah ada)</span>
+                    <span style="color:var(--yellow);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.diskip} siswa</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:0.75rem 1rem;background:rgba(248,113,113,0.1);border-radius:10px;">
+                    <span style="color:var(--muted)">Error (data tidak lengkap)</span>
+                    <span style="color:var(--red);font-family:'JetBrains Mono',monospace;font-weight:600;">${d.error} baris</span>
+                </div>
+            </div>`;
+            fileInput.value = '';
+            document.getElementById('preview-file').style.display = 'none';
+            loadSiswa();
         }
-    }
-
-    async function hapusUser(id, username) {
-        if (!confirm(`Hapus user "${username}"?`)) return;
-        const res = await fetch(`/api/users/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': CSRF },
-        });
-        const d = await res.json();
-        if (d.status === 'berhasil') loadUser();
-        else alert(d.pesan);
-    }
-
-    // ── Hari Libur ───────────────────────────────────────────────────────────
-    async function loadHariLibur() {
-        const res = await fetch('/api/hari-libur');
-        const list = await res.json();
-        renderHariLibur(list);
-    }
-
-    function renderHariLibur(list) {
-        const tbody = document.getElementById('tbody-libur');
-        if (!list.length) {
-            tbody.innerHTML = '<tr><td colspan="3" class="empty-state">Belum ada hari libur khusus</td></tr>';
-            return;
-        }
-        tbody.innerHTML = list.map(h => `
-        <tr>
-            <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent)">${h.tanggal}</td>
-            <td>${h.keterangan}</td>
-            <td><button class="btn-small btn-hapus" onclick="hapusHariLibur(${h.id},'${h.keterangan}')">Hapus</button></td>
-        </tr>`).join('');
-    }
-
-    async function tambahHariLibur() {
-        const tanggal    = document.getElementById('hl-tanggal').value;
-        const keterangan = document.getElementById('hl-keterangan').value.trim();
-        const notif      = document.getElementById('notif-libur');
-
-        const res = await fetch('/api/hari-libur', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify({ tanggal, keterangan })
-        });
-        const d = await res.json();
-        notif.className = 'notif ' + (d.status === 'berhasil' ? 'ok' : 'err');
-        notif.textContent = d.pesan;
-        notif.style.display = 'block';
-        setTimeout(() => notif.style.display = 'none', 3000);
-        if (d.status === 'berhasil') {
-            document.getElementById('hl-tanggal').value = '';
-            document.getElementById('hl-keterangan').value = '';
-            loadHariLibur();
-        }
-    }
-
-    async function hapusHariLibur(id, keterangan) {
-        if (!confirm(`Hapus hari libur "${keterangan}"?`)) return;
-        await fetch(`/api/hari-libur/${id}`, {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': CSRF },
-        });
-        loadHariLibur();
     }
 
     loadSiswa();
-    loadUser();
-    loadHariLibur();
   </script>
 </body>
 </html>

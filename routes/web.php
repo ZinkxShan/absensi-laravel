@@ -28,11 +28,13 @@ Route::middleware(['auth', 'auth.sekretaris'])->group(function () {
 // Admin only
 Route::middleware(['auth', 'auth.admin'])->group(function () {
     Route::get('/kelola',                  [AbsensiController::class, 'halamanKelola']);
+    Route::get('/kelola-user',             [AbsensiController::class, 'halamanKelolaUser']);
+    Route::get('/hari-libur',              [AbsensiController::class, 'halamanHariLibur']);
     Route::get('/api/siswa',               [AbsensiController::class, 'getSiswa']);
     Route::post('/api/siswa',              [AbsensiController::class, 'tambahSiswa']);
     Route::delete('/api/siswa/{id}',       [AbsensiController::class, 'hapusSiswa']);
-    Route::post('/api/siswa/import',    [AbsensiController::class, 'importSiswa']);
-    Route::get('/api/siswa/template',   [AbsensiController::class, 'downloadTemplate']);
+    Route::post('/api/siswa/import',       [AbsensiController::class, 'importSiswa']);
+    Route::get('/api/siswa/template',      [AbsensiController::class, 'downloadTemplate']);
     Route::get('/api/qrcode/{kode}',       [AbsensiController::class, 'getQrCode']);
     Route::get('/kartu/{id}',              [AbsensiController::class, 'downloadKartu']);
     Route::post('/api/settings/jam-batas', [AbsensiController::class, 'setJamBatas']);

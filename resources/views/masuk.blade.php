@@ -399,6 +399,8 @@
       <a href="/keluar">Scan Keluar</a>
       <a href="/dashboard">Dashboard</a>
       <a href="/kelola">Kelola Siswa</a>
+      <a href="/kelola-user">Kelola User</a>
+      <a href="/hari-libur">Hari Libur</a>
     </div>
   </nav>
   <main>

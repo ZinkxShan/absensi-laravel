@@ -18,6 +18,8 @@ class AbsensiController extends Controller
     public function halamanKeluar()  { return view('keluar'); }
     public function halamanDashboard() { return view('dashboard'); }
     public function halamanKelola()  { return view('kelola'); }
+    public function halamanKelolaUser() { return view('kelola-user'); }  
+    public function halamanHariLibur()  { return view('hari-libur'); }   
 
     // ── Helper ───────────────────────────────────────────────────────────────────
 
