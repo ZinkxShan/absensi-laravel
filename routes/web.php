@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\AbsensiController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RekapController;
 use Illuminate\Support\Facades\Route;
 
 // Login & Logout
@@ -23,6 +24,9 @@ Route::middleware(['auth', 'auth.sekretaris'])->group(function () {
     Route::get('/api/dashboard',           [AbsensiController::class, 'apiDashboard']);
     Route::post('/api/keterangan',         [AbsensiController::class, 'inputKeterangan']);
     Route::get('/api/settings/jam-batas',  [AbsensiController::class, 'getJamBatasApi']);
+    Route::get('/rekap',                   [RekapController::class, 'halaman']);
+    Route::get('/api/rekap',               [RekapController::class, 'apiRekap']);
+    Route::get('/api/rekap/export',        [RekapController::class, 'exportExcel']);
 });
 
 // Admin only

@@ -54,6 +54,7 @@
       <a href="/masuk" class="masuk">Scan Masuk</a>
       <a href="/keluar" class="keluar">Scan Keluar</a>
       <a href="/dashboard">Dashboard</a>
+      <a href="/rekap">Rekap</a>
       <a href="/kelola">Kelola Siswa</a>
       <a href="/kelola-user">Kelola User</a>
       <a href="/hari-libur" class="active">Hari Libur</a>
