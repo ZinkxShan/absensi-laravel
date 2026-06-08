@@ -79,7 +79,7 @@
 
     {{-- Filter Bar --}}
     <div class="filter-bar">
-      <label>Mode:</label>
+      <label>Jangka Waktu:</label>
       <select id="f-mode" onchange="toggleFilter()">
         <option value="bulan">Per Bulan</option>
         <option value="semester">Per Semester</option>
