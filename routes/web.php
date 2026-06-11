@@ -5,16 +5,16 @@ use App\Http\Controllers\RekapController;
 use Illuminate\Support\Facades\Route;
 
 // Login & Logout
-Route::get('/login',   [AuthController::class, 'halamanLogin'])->name('login');
-Route::post('/login',  [AuthController::class, 'login']);
+Route::get('/login', [AuthController::class, 'halamanLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // User & Admin — scan masuk keluar (sekretaris TIDAK boleh)
 Route::middleware(['auth', 'auth.scan'])->group(function () {
     Route::get('/', fn() => redirect('/masuk'));
-    Route::get('/masuk',  [AbsensiController::class, 'halamanMasuk']);
+    Route::get('/masuk', [AbsensiController::class, 'halamanMasuk']);
     Route::get('/keluar', [AbsensiController::class, 'halamanKeluar']);
-    Route::post('/api/scan/masuk',  [AbsensiController::class, 'scanMasuk']);
+    Route::post('/api/scan/masuk', [AbsensiController::class, 'scanMasuk']);
     Route::post('/api/scan/keluar', [AbsensiController::class, 'scanKeluar']);
 });
 
