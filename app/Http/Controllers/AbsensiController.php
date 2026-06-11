@@ -517,38 +517,63 @@ public function hapusUser(int $id): JsonResponse
     if ($dayOfWeek == 0) return ['libur' => true, 'keterangan' => 'Hari Minggu'];
     if ($dayOfWeek == 6) return ['libur' => true, 'keterangan' => 'Hari Sabtu'];
 
-    // Cek hari libur khusus
-    $hariLibur = \App\Models\HariLibur::where('tanggal', $tanggal)->first();
+    // Cek hari libur khusus — tanggal masuk dalam range
+    $hariLibur = \App\Models\HariLibur::where('tanggal', '<=', $tanggal)
+        ->where(function ($q) use ($tanggal) {
+            $q->where('tanggal_akhir', '>=', $tanggal)
+              ->orWhere(function ($q2) use ($tanggal) {
+                  $q2->whereNull('tanggal_akhir')
+                     ->where('tanggal', $tanggal);
+              });
+        })->first();
+
     if ($hariLibur) return ['libur' => true, 'keterangan' => $hariLibur->keterangan];
 
     return ['libur' => false, 'keterangan' => ''];
-}
+    }
 
     public function getHariLibur(): JsonResponse
     {
     $list = \App\Models\HariLibur::orderBy('tanggal')->get()
         ->map(fn($h) => [
-            'id'          => $h->id,
-            'tanggal'     => $h->tanggal->format('Y-m-d'),
-            'tanggal_fmt' => $h->tanggal->translatedFormat('d F Y'),
-            'keterangan'  => $h->keterangan,
+            'id'            => $h->id,
+            'tanggal'       => $h->tanggal->format('Y-m-d'),
+            'tanggal_akhir' => $h->tanggal_akhir?->format('Y-m-d'),
+            'keterangan'    => $h->keterangan,
+            // Label tampilan: range atau single
+            'label_tanggal' => $h->tanggal_akhir
+                ? $h->tanggal->format('d/m/Y') . ' s/d ' . $h->tanggal_akhir->format('d/m/Y')
+                : $h->tanggal->format('d/m/Y'),
         ]);
     return response()->json($list);
-    }
+}
 
     public function tambahHariLibur(Request $request): JsonResponse
     {
-        $tanggal    = trim($request->input('tanggal', ''));
-        $keterangan = trim($request->input('keterangan', ''));
+    $tanggal      = trim($request->input('tanggal', ''));
+    $tanggalAkhir = trim($request->input('tanggal_akhir', ''));
+    $keterangan   = trim($request->input('keterangan', ''));
 
-        if (!$tanggal || !$keterangan)
-            return response()->json(['status' => 'error', 'pesan' => 'Tanggal dan keterangan wajib diisi']);
+    if (!$tanggal || !$keterangan)
+        return response()->json(['status' => 'error', 'pesan' => 'Tanggal dan keterangan wajib diisi']);
 
-        if (\App\Models\HariLibur::where('tanggal', $tanggal)->exists())
-            return response()->json(['status' => 'error', 'pesan' => 'Tanggal ini sudah ada di daftar hari libur']);
+    // Kalau tanggal akhir kosong atau sama dengan tanggal awal, simpan null
+    if (!$tanggalAkhir || $tanggalAkhir === $tanggal) {
+        $tanggalAkhir = null;
+    }
 
-        \App\Models\HariLibur::create(['tanggal' => $tanggal, 'keterangan' => $keterangan]);
-        return response()->json(['status' => 'berhasil', 'pesan' => 'Hari libur berhasil ditambahkan']);
+    // Validasi tanggal akhir tidak boleh sebelum tanggal awal
+    if ($tanggalAkhir && $tanggalAkhir < $tanggal) {
+        return response()->json(['status' => 'error', 'pesan' => 'Tanggal akhir tidak boleh sebelum tanggal awal']);
+    }
+
+    \App\Models\HariLibur::create([
+        'tanggal'       => $tanggal,
+        'tanggal_akhir' => $tanggalAkhir,
+        'keterangan'    => $keterangan,
+    ]);
+
+    return response()->json(['status' => 'berhasil', 'pesan' => 'Hari libur berhasil ditambahkan']);
     }
 
     public function hapusHariLibur(int $id): JsonResponse

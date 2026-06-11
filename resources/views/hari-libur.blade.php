@@ -20,7 +20,7 @@
     .nav-links a.masuk{color:var(--green)}.nav-links a.keluar{color:#60a5fa}
     .container{max-width:1000px;margin:0 auto;padding:2rem 1.5rem;}
     h1{font-size:1.5rem;font-weight:700;margin-bottom:2rem;}
-    .grid-2{display:grid;grid-template-columns:340px 1fr;gap:1.5rem;align-items:start;}
+    .grid-2{display:grid;grid-template-columns:380px 1fr;gap:1.5rem;align-items:start;}
     @media(max-width:768px){.grid-2{grid-template-columns:1fr;}}
     .panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem;}
     .panel-title{font-size:0.78rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:1.25rem;}
@@ -45,6 +45,9 @@
     .btn-hapus{background:rgba(248,113,113,0.12);color:var(--red);}
     .btn-hapus:hover{background:rgba(248,113,113,0.22);}
     .empty-state{color:var(--muted);font-size:0.9rem;text-align:center;padding:2rem;}
+    .tanggal-text{font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent);}
+    .date-range{display:flex;gap:0.5rem;align-items:center;}
+    .date-range span{color:var(--muted);font-size:0.82rem;}
   </style>
 </head>
 <body>
@@ -54,9 +57,18 @@
       <a href="/masuk" class="masuk">Scan Masuk</a>
       <a href="/keluar" class="keluar">Scan Keluar</a>
       <a href="/dashboard">Dashboard</a>
+      <a href="/rekap">Rekap</a>
       <a href="/kelola">Kelola Siswa</a>
       <a href="/kelola-user">Kelola User</a>
       <a href="/hari-libur" class="active">Hari Libur</a>
+
+      <form method="POST" action="/logout" style="display:inline;">
+        @csrf
+        <button type="submit" style="padding:0.4rem 1rem;border-radius:8px;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:500;">
+            Logout
+        </button>
+    </form>
+    
     </div>
   </nav>
 
@@ -67,16 +79,25 @@
         <div class="panel-title">Tambah Hari Libur</div>
         <div class="notif" id="notif-libur"></div>
         <div class="info-box">
-          Sabtu & Minggu otomatis libur. Tambahkan hari libur khusus di sini.
+          Sabtu & Minggu otomatis libur.<br>
+          Untuk libur 1 hari, kosongkan <strong>Tanggal Akhir</strong> atau isi sama dengan Tanggal Awal.
         </div>
+
         <div class="form-group">
-          <label>Tanggal</label>
-          <input type="date" id="hl-tanggal">
+          <label>Tanggal Awal</label>
+          <input type="date" id="hl-tanggal" onchange="setMinTanggalAkhir()">
         </div>
+
+        <div class="form-group">
+          <label>Tanggal Akhir <span style="color:var(--muted);font-weight:400;">(kosongkan jika 1 hari)</span></label>
+          <input type="date" id="hl-tanggal-akhir">
+        </div>
+
         <div class="form-group">
           <label>Keterangan</label>
           <input type="text" id="hl-keterangan" placeholder="contoh: Idul Fitri, HUT RI, Libur Semester">
         </div>
+
         <button class="btn btn-primary" onclick="tambahHariLibur()">+ Tambah Hari Libur</button>
       </div>
 
@@ -84,7 +105,13 @@
         <div class="panel-title">Daftar Hari Libur Khusus</div>
         <div class="tabel-wrap">
           <table>
-            <thead><tr><th>Tanggal</th><th>Keterangan</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Keterangan</th>
+                <th></th>
+              </tr>
+            </thead>
             <tbody id="tbody-libur"></tbody>
           </table>
         </div>
@@ -95,8 +122,18 @@
   <script>
     const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
+    function setMinTanggalAkhir() {
+        const awal  = document.getElementById('hl-tanggal').value;
+        const akhir = document.getElementById('hl-tanggal-akhir');
+        if (awal) {
+            akhir.min = awal;
+            // Reset tanggal akhir kalau sebelum tanggal awal
+            if (akhir.value && akhir.value < awal) akhir.value = '';
+        }
+    }
+
     async function loadHariLibur() {
-        const res = await fetch('/api/hari-libur');
+        const res  = await fetch('/api/hari-libur');
         const list = await res.json();
         renderHariLibur(list);
     }
@@ -109,21 +146,22 @@
         }
         tbody.innerHTML = list.map(h => `
         <tr>
-            <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--accent)">${h.tanggal}</td>
+            <td><span class="tanggal-text">${h.label_tanggal}</span></td>
             <td>${h.keterangan}</td>
             <td><button class="btn-small btn-hapus" onclick="hapusHariLibur(${h.id},'${h.keterangan}')">Hapus</button></td>
         </tr>`).join('');
     }
 
     async function tambahHariLibur() {
-        const tanggal    = document.getElementById('hl-tanggal').value;
-        const keterangan = document.getElementById('hl-keterangan').value.trim();
-        const notif      = document.getElementById('notif-libur');
+        const tanggal      = document.getElementById('hl-tanggal').value;
+        const tanggalAkhir = document.getElementById('hl-tanggal-akhir').value;
+        const keterangan   = document.getElementById('hl-keterangan').value.trim();
+        const notif        = document.getElementById('notif-libur');
 
         const res = await fetch('/api/hari-libur', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify({ tanggal, keterangan })
+            body: JSON.stringify({ tanggal, tanggal_akhir: tanggalAkhir, keterangan })
         });
         const d = await res.json();
         notif.className = 'notif ' + (d.status === 'berhasil' ? 'ok' : 'err');
@@ -132,6 +170,7 @@
         setTimeout(() => notif.style.display = 'none', 3000);
         if (d.status === 'berhasil') {
             document.getElementById('hl-tanggal').value = '';
+            document.getElementById('hl-tanggal-akhir').value = '';
             document.getElementById('hl-keterangan').value = '';
             loadHariLibur();
         }

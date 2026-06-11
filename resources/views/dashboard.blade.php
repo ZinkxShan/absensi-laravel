@@ -84,9 +84,18 @@
     <a href="/masuk" class="masuk">Scan Masuk</a>
     <a href="/keluar" class="keluar">Scan Keluar</a>
     <a href="/dashboard" class="active">Dashboard</a>
+    <a href="/rekap">Rekap</a>
     <a href="/kelola">Kelola Siswa</a>
     <a href="/kelola-user">Kelola User</a>
     <a href="/hari-libur">Hari Libur</a>
+
+    <form method="POST" action="/logout" style="display:inline;">
+        @csrf
+        <button type="submit" style="padding:0.4rem 1rem;border-radius:8px;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:500;">
+            Logout
+        </button>
+    </form>
+    
   </div>
 </nav>
 <div class="container">
@@ -119,7 +128,7 @@
   </div>
   <div class="grid-2">
     <div class="panel">
-      <div class="panel-title">Tren 7 Hari Terakhir</div>
+      <div class="panel-title">Grafik 7 Hari Terakhir</div>
       <div class="chart-wrap"><canvas id="chart-tren"></canvas></div>
     </div>
     <div class="panel">
