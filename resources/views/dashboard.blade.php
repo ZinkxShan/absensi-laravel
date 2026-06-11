@@ -120,7 +120,7 @@
   </div>
   <div class="grid-2">
     <div class="panel">
-      <div class="panel-title">Tren 7 Hari Terakhir</div>
+      <div class="panel-title">Grafik 7 Hari Terakhir</div>
       <div class="chart-wrap"><canvas id="chart-tren"></canvas></div>
     </div>
     <div class="panel">

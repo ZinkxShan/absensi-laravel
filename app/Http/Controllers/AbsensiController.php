@@ -546,7 +546,7 @@ public function hapusUser(int $id): JsonResponse
                 : $h->tanggal->format('d/m/Y'),
         ]);
     return response()->json($list);
-    git }
+}
 
     public function tambahHariLibur(Request $request): JsonResponse
     {
