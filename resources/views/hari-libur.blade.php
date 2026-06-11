@@ -61,6 +61,14 @@
       <a href="/kelola">Kelola Siswa</a>
       <a href="/kelola-user">Kelola User</a>
       <a href="/hari-libur" class="active">Hari Libur</a>
+
+      <form method="POST" action="/logout" style="display:inline;">
+        @csrf
+        <button type="submit" style="padding:0.4rem 1rem;border-radius:8px;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:500;">
+            Logout
+        </button>
+    </form>
+    
     </div>
   </nav>
 
@@ -71,7 +79,7 @@
         <div class="panel-title">Tambah Hari Libur</div>
         <div class="notif" id="notif-libur"></div>
         <div class="info-box">
-          📅 Sabtu & Minggu otomatis libur.<br>
+          Sabtu & Minggu otomatis libur.<br>
           Untuk libur 1 hari, kosongkan <strong>Tanggal Akhir</strong> atau isi sama dengan Tanggal Awal.
         </div>
 
