@@ -124,7 +124,7 @@ php artisan optimize:clear
 1. Download ngrok dari https://ngrok.com/download
 2. Lalu jalankan:
 ngrok config add-authtoken YOUR_TOKEN
-ngrok http 80 --host-header=absensi.test
+3. ngrok http --host-header=rewrite absensi.test:80
 
 
 ## Update .env saat menggunakan ngrok
