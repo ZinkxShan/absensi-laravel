@@ -25,6 +25,7 @@
     .filter-bar label{font-size:0.82rem;color:var(--muted);font-weight:500;}
     .filter-bar select, .filter-bar input{padding:0.5rem 0.75rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:0.85rem;outline:none;}
     .filter-bar select:focus, .filter-bar input:focus{border-color:var(--accent);}
+    .filter-bar select:disabled{opacity:0.5;cursor:not-allowed;}
     .btn-filter{padding:0.5rem 1.25rem;border-radius:8px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:600;transition:all 0.2s;background:linear-gradient(135deg,rgba(34,211,238,0.2),rgba(129,140,248,0.2));color:var(--accent);border:1px solid rgba(34,211,238,0.3);}
     .btn-filter:hover{background:linear-gradient(135deg,rgba(34,211,238,0.3),rgba(129,140,248,0.3));}
     .btn-export{padding:0.5rem 1.25rem;border-radius:8px;border:none;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.85rem;font-weight:600;transition:all 0.2s;background:rgba(74,222,128,0.15);color:var(--green);border:1px solid rgba(74,222,128,0.3);}
@@ -55,6 +56,7 @@
     .persen-text{font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);min-width:40px;}
     .empty-state{color:var(--muted);font-size:0.9rem;text-align:center;padding:3rem;}
     .loading{color:var(--muted);font-size:0.9rem;text-align:center;padding:3rem;}
+    .kelas-badge-filter{display:inline-block;padding:0.2rem 0.6rem;border-radius:6px;background:rgba(34,211,238,0.15);color:var(--accent);font-size:0.8rem;font-weight:600;margin-left:0.25rem;}
   </style>
 </head>
 <body>
@@ -68,14 +70,10 @@
       <a href="/kelola">Kelola Siswa</a>
       <a href="/kelola-user">Kelola User</a>
       <a href="/hari-libur">Hari Libur</a>
-
       <form method="POST" action="/logout" style="display:inline;">
         @csrf
-        <button type="submit" style="padding:0.4rem 1rem;border-radius:8px;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:500;">
-            Logout
-        </button>
-    </form>
-    
+        <button type="submit" style="padding:0.4rem 1rem;border-radius:8px;background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:500;">Logout</button>
+      </form>
     </div>
   </nav>
 
@@ -87,7 +85,7 @@
 
     {{-- Filter Bar --}}
     <div class="filter-bar">
-      <label>Jangka Waktu:</label>
+      <label>Mode:</label>
       <select id="f-mode" onchange="toggleFilter()">
         <option value="bulan">Per Bulan</option>
         <option value="semester">Per Semester</option>
@@ -117,6 +115,12 @@
       <label>Tahun:</label>
       <input type="number" id="f-tahun" value="{{ date('Y') }}" min="2020" max="2099" style="width:90px;">
 
+      {{-- Filter Kelas --}}
+      <label>Kelas:</label>
+      <select id="f-kelas">
+        <option value="semua">Semua Kelas</option>
+      </select>
+
       <button class="btn-filter" onclick="loadRekap()">🔍 Tampilkan</button>
     </div>
 
@@ -125,7 +129,7 @@
 
     {{-- Tabel --}}
     <div class="panel">
-      <div class="panel-title">Data Rekap</div>
+      <div class="panel-title" id="panel-title">Data Rekap</div>
       <div class="tabel-wrap">
         <table>
           <thead>
@@ -152,7 +156,36 @@
   </div>
 
   <script>
-    let lastParams = '';
+    let lastParams   = '';
+    let isAdmin      = true;
+    let userKelas    = '';
+
+    // Load daftar kelas saat halaman dibuka
+    async function initKelas() {
+        // Ambil data awal untuk tahu role user dan daftar kelas
+        const now    = new Date();
+        const params = `mode=bulan&tahun=${now.getFullYear()}&bulan=${now.getMonth()+1}&semester=1&kelas=semua`;
+        const res    = await fetch(`/api/rekap?${params}`);
+        const d      = await res.json();
+
+        isAdmin   = d.user_role === 'admin';
+        userKelas = d.user_kelas;
+
+        const select = document.getElementById('f-kelas');
+
+        if (!isAdmin) {
+            // Sekretaris — dikunci ke kelasnya sendiri
+            select.innerHTML = `<option value="${userKelas}">${userKelas}</option>`;
+            select.disabled  = true;
+        } else {
+            // Admin — semua kelas + pilihan per kelas
+            let options = '<option value="semua">Semua Kelas</option>';
+            d.daftar_kelas.forEach(k => {
+                options += `<option value="${k}">${k}</option>`;
+            });
+            select.innerHTML = options;
+        }
+    }
 
     function toggleFilter() {
         const mode = document.getElementById('f-mode').value;
@@ -165,7 +198,8 @@
         const tahun    = document.getElementById('f-tahun').value;
         const bulan    = document.getElementById('f-bulan').value;
         const semester = document.getElementById('f-semester').value;
-        return `mode=${mode}&tahun=${tahun}&bulan=${bulan}&semester=${semester}`;
+        const kelas    = document.getElementById('f-kelas').value;
+        return `mode=${mode}&tahun=${tahun}&bulan=${bulan}&semester=${semester}&kelas=${encodeURIComponent(kelas)}`;
     }
 
     async function loadRekap() {
@@ -179,8 +213,17 @@
         const res = await fetch(`/api/rekap?${params}`);
         const d   = await res.json();
 
+        const kelasFilter = document.getElementById('f-kelas').value;
+        const kelasLabel  = kelasFilter === 'semua' ? 'Semua Kelas' : kelasFilter;
+
         document.getElementById('info-label').innerHTML =
-            `<span class="info-label">📅 <strong>${d.label}</strong> &nbsp;|&nbsp; Hari Aktif Sekolah: <span>${d.hari_efektif} hari</span> &nbsp;|&nbsp; Total Siswa: <span>${d.rekap.length}</span></span>`;
+            `<span class="info-label">📅 <strong>${d.label}</strong> &nbsp;|&nbsp;
+             Kelas: <span class="kelas-badge-filter">${kelasLabel}</span> &nbsp;|&nbsp;
+             Hari Efektif: <span>${d.hari_efektif} hari</span> &nbsp;|&nbsp;
+             Total Siswa: <span>${d.rekap.length}</span></span>`;
+
+        document.getElementById('panel-title').textContent =
+            `Data Rekap — ${d.label} — ${kelasLabel}`;
 
         if (!d.rekap.length) {
             document.getElementById('tbody-rekap').innerHTML =
@@ -222,8 +265,9 @@
         window.open(`/api/rekap/export?${lastParams}`, '_blank');
     }
 
-    // Set bulan sekarang sebagai default
+    // Init
     document.getElementById('f-bulan').value = new Date().getMonth() + 1;
+    initKelas();
   </script>
 </body>
 </html>

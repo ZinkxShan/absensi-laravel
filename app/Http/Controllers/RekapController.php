@@ -15,88 +15,99 @@ class RekapController extends Controller
 
     public function apiRekap(Request $request)
     {
-        $mode     = $request->query('mode', 'bulan');
-        $tahun    = (int) $request->query('tahun', date('Y'));
-        $bulan    = (int) $request->query('bulan', date('n'));
-        $semester = (int) $request->query('semester', 1);
+    $mode     = $request->query('mode', 'bulan');
+    $tahun    = (int) $request->query('tahun', date('Y'));
+    $bulan    = (int) $request->query('bulan', date('n'));
+    $semester = (int) $request->query('semester', 1);
+    $kelas    = $request->query('kelas', ''); 
 
-        $user = Auth::user();
+    $user = Auth::user();
 
-        // Tentukan range tanggal
-        if ($mode === 'bulan') {
-            $dari    = "$tahun-" . str_pad($bulan, 2, '0', STR_PAD_LEFT) . "-01";
-            $sampai  = date('Y-m-t', strtotime($dari));
-            $label   = $this->namaBulan($bulan) . " $tahun";
-        } elseif ($mode === 'semester') {
-            if ($semester == 1) {
-                $dari   = "$tahun-07-01";
-                $sampai = ($tahun + 1) . "-12-31";
-                $label  = "Semester 1 — $tahun/" . ($tahun + 1);
-            } else {
-                $dari   = ($tahun) . "-01-01";
-                $sampai = ($tahun) . "-06-30";
-                $label  = "Semester 2 — " . ($tahun - 1) . "/$tahun";
-            }
-        } else {
-            // tahun ajaran: Juli tahun ini — Juni tahun depan
+    // Tentukan range tanggal
+    if ($mode === 'bulan') {
+        $dari    = "$tahun-" . str_pad($bulan, 2, '0', STR_PAD_LEFT) . "-01";
+        $sampai  = date('Y-m-t', strtotime($dari));
+        $label   = $this->namaBulan($bulan) . " $tahun";
+    } elseif ($mode === 'semester') {
+        if ($semester == 1) {
             $dari   = "$tahun-07-01";
-            $sampai = ($tahun + 1) . "-06-30";
-            $label  = "Tahun Ajaran $tahun/" . ($tahun + 1);
+            $sampai = ($tahun + 1) . "-12-31";
+            $label  = "Semester 1 — $tahun/" . ($tahun + 1);
+        } else {
+            $dari   = ($tahun) . "-01-01";
+            $sampai = ($tahun) . "-06-30";
+            $label  = "Semester 2 — " . ($tahun - 1) . "/$tahun";
         }
+    } else {
+        $dari   = "$tahun-07-01";
+        $sampai = ($tahun + 1) . "-06-30";
+        $label  = "Tahun Ajaran $tahun/" . ($tahun + 1);
+    }
 
-        // Hitung total hari efektif (senin-jumat, bukan hari libur)
-        $hariEfektif = $this->hitungHariEfektif($dari, $sampai);
+    $hariEfektif = $this->hitungHariEfektif($dari, $sampai);
 
-        // Query siswa (filter kelas jika sekretaris)
-        $query = DB::table('siswa')->orderBy('kelas')->orderBy('nama_lengkap');
-        if ($user->role === 'sekretaris') {
-            $query->where('kelas', $user->kelas);
-        }
-        $siswas = $query->get();
+    // Query siswa
+    $query = DB::table('siswa')->orderBy('kelas')->orderBy('nama_lengkap');
 
-        $rekap = [];
+    if ($user->role === 'sekretaris') {
+        // Sekretaris dikunci ke kelasnya sendiri
+        $query->where('kelas', $user->kelas);
+    } elseif ($kelas && $kelas !== 'semua') {
+        // Admin pilih kelas tertentu
+        $query->where('kelas', $kelas);
+    }
 
-        foreach ($siswas as $siswa) {
-            // Ambil semua absensi siswa dalam range
-            $absensi = DB::table('absensi')
-                ->where('siswa_id', $siswa->id)
-                ->whereBetween('tanggal', [$dari, $sampai])
-                ->get();
+    $siswas = $query->get();
 
-            $hadir      = $absensi->whereIn('status', ['masuk', 'lengkap'])->count();
-            $terlambat  = $absensi->whereIn('status', ['terlambat', 'terlambat_lengkap'])->count();
-            $izin       = $absensi->where('keterangan', 'izin')->count();
-            $sakit      = $absensi->where('keterangan', 'sakit')->count();
-            $alpha      = $absensi->where('keterangan', 'alpha')->count();
-            $totalHadir = $hadir + $terlambat;
-            $tidakHadir = $hariEfektif - $totalHadir - $izin - $sakit - $alpha;
-            $tidakHadir = max(0, $tidakHadir);
-            $persen     = $hariEfektif > 0
-                ? round(($totalHadir / $hariEfektif) * 100, 1)
-                : 0;
+    $rekap = [];
 
-            $rekap[] = [
-                'id'           => $siswa->id,
-                'nama_lengkap' => $siswa->nama_lengkap,
-                'kelas'        => $siswa->kelas,
-                'hadir'        => $hadir,
-                'terlambat'    => $terlambat,
-                'izin'         => $izin,
-                'sakit'        => $sakit,
-                'alpha'        => $alpha,
-                'tidak_hadir'  => $tidakHadir,
-                'total_hadir'  => $totalHadir,
-                'persen'       => $persen,
-            ];
-        }
+    foreach ($siswas as $siswa) {
+        $absensi = DB::table('absensi')
+            ->where('siswa_id', $siswa->id)
+            ->whereBetween('tanggal', [$dari, $sampai])
+            ->get();
 
-        return response()->json([
-            'label'         => $label,
-            'dari'          => $dari,
-            'sampai'        => $sampai,
-            'hari_efektif'  => $hariEfektif,
-            'rekap'         => $rekap,
-        ]);
+        $hadir      = $absensi->whereIn('status', ['masuk', 'lengkap'])->count();
+        $terlambat  = $absensi->whereIn('status', ['terlambat', 'terlambat_lengkap'])->count();
+        $izin       = $absensi->where('keterangan', 'izin')->count();
+        $sakit      = $absensi->where('keterangan', 'sakit')->count();
+        $alpha      = $absensi->where('keterangan', 'alpha')->count();
+        $totalHadir = $hadir + $terlambat;
+        $tidakHadir = max(0, $hariEfektif - $totalHadir - $izin - $sakit - $alpha);
+        $persen     = $hariEfektif > 0
+            ? round(($totalHadir / $hariEfektif) * 100, 1)
+            : 0;
+
+        $rekap[] = [
+            'id'           => $siswa->id,
+            'nama_lengkap' => $siswa->nama_lengkap,
+            'kelas'        => $siswa->kelas,
+            'hadir'        => $hadir,
+            'terlambat'    => $terlambat,
+            'izin'         => $izin,
+            'sakit'        => $sakit,
+            'alpha'        => $alpha,
+            'tidak_hadir'  => $tidakHadir,
+            'total_hadir'  => $totalHadir,
+            'persen'       => $persen,
+        ];
+    }
+
+    // Ambil semua kelas untuk dropdown (hanya admin)
+    $daftarKelas = $user->role === 'admin'
+        ? DB::table('siswa')->distinct()->orderBy('kelas')->pluck('kelas')
+        : collect([$user->kelas]);
+
+    return response()->json([
+        'label'        => $label,
+        'dari'         => $dari,
+        'sampai'       => $sampai,
+        'hari_efektif' => $hariEfektif,
+        'rekap'        => $rekap,
+        'daftar_kelas' => $daftarKelas,
+        'user_role'    => $user->role,
+        'user_kelas'   => $user->kelas,
+    ]);
     }
 
     public function exportExcel(Request $request)
